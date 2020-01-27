@@ -161,6 +161,9 @@ EOF
     && echo "## Pass: Join master to Kubenetes cluster" \
     || { echo "## Fail: failed to join master to Kubernetes cluster" ; exit 1 ; }
 
+  # Untaint the master
+  sudo kubectl taint nodes $(hostname) node-role.kubernetes.io/master- --kubeconfig /etc/kubernetes/admin.conf
+
 fi
 
 echo "===== Copy conf files to user context ====="
@@ -176,6 +179,3 @@ sudo cp -T -v /etc/kubernetes/admin.conf /home/$ADMIN_USERNAME/.kube/config \
 sudo chown $(id -u $ADMIN_USERNAME):$(id -g $ADMIN_USERNAME) /home/$ADMIN_USERNAME/.kube/config \
   && echo "## Pass: Set permissions on .kube/config folder" \
   || { echo "## Fail: failed to set permissions on .kube/config folder" ; exit 1 ; }
-
-  # Untaint the master
-  sudo kubectl taint nodes $(hostname) node-role.kubernetes.io/master- --kubeconfig /etc/kubernetes/admin.conf
