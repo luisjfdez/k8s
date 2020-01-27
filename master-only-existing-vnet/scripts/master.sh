@@ -5,6 +5,7 @@ NODE_INDEX=$1
 UNIQUE_STRING=$2
 API_LB_ENDPOINT="$3:6443"
 ADMIN_USERNAME=$4
+KUBERNETES_VERSION=$5
 POD_SUBNET="10.244.0.0/16"
 OVERLAY_CONF="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 KUBEADM_CONF="kubeadm_config.yaml"
@@ -18,6 +19,7 @@ echo "===== ARGS ===="
 echo ${NODE_INDEX}
 echo ${UNIQUE_STRING}
 echo ${API_LB_ENDPOINT}
+echo ${KUBERNETES_VERSION}
 echo ${POD_SUBNET}
 echo ${OVERLAY_CONF}
 echo ${KUBEADM_CONF}
@@ -60,10 +62,16 @@ sudo apt-get update \
   && echo "## Pass: updated package database" \
   || { echo "## Fail: failed to update package database" ; exit 1 ; }
 
-echo "===== install Kubernetes components ====="
-sudo apt-get install -y kubelet kubeadm kubectl \
-  && echo "## Pass: Install Kubernetes components" \
-  || { echo "## Fail: failed to install Kubernetes components" ; exit 1 ; }
+echo "===== install Kubernetes components using specified version ====="
+if [ "$KUBERNETES_VERSION" = "latest" ]; then
+  sudo apt-get install -y kubelet kubeadm kubectl \
+    && echo "## Pass: Install latest version of Kubernetes components" \
+    || { echo "## Fail: failed to install latest version of Kubernetes components" ; exit 1 ; }
+else
+  sudo apt-get install -y kubelet=${KUBERNETES_VERSION} kubeadm=${KUBERNETES_VERSION} kubectl=${KUBERNETES_VERSION} \
+    && echo "## Pass: Install latest version of Kubernetes components" \
+    || { echo "## Fail: failed to install latest version of Kubernetes components" ; exit 1 ; }
+fi
 
 # Fix warning 1
 sudo systemctl enable docker.service \
@@ -129,6 +137,9 @@ EOF
     && echo "## Pass: Applied network overlay" \
     || { echo "## Fail: failed to apply network overlay" ; exit 1 ; }
 
+  # Untaint the master
+  sudo kubectl taint nodes $(hostname) node-role.kubernetes.io/master- --kubeconfig /etc/kubernetes/admin.conf
+
 else
 
   echo "===== Adding an additional master to the cluster ====="
@@ -165,3 +176,6 @@ sudo cp -T -v /etc/kubernetes/admin.conf /home/$ADMIN_USERNAME/.kube/config \
 sudo chown $(id -u $ADMIN_USERNAME):$(id -g $ADMIN_USERNAME) /home/$ADMIN_USERNAME/.kube/config \
   && echo "## Pass: Set permissions on .kube/config folder" \
   || { echo "## Fail: failed to set permissions on .kube/config folder" ; exit 1 ; }
+
+  # Untaint the master
+  sudo kubectl taint nodes $(hostname) node-role.kubernetes.io/master- --kubeconfig /etc/kubernetes/admin.conf
