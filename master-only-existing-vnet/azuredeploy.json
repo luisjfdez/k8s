@@ -70,7 +70,7 @@
         },
         "artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/marcvaneijk/k8s/master/master-only-existing-vnet/",
+            "defaultValue": "https://raw.githubusercontent.com/jumacabo/k8s/master/master-only-existing-vnet/",
             "metadata": {
                 "description": "Location of templates, scripts and other artifacts"
             }
