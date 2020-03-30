@@ -28,7 +28,7 @@
                 "description": "The size of the VMs"
             },
             "defaultValue": "latest",
-            "allowedValues": ["latest","1.15.4-00"]
+            "allowedValues": ["latest","1.15.4"]
         },
         "prefix": {
             "type": "string",
