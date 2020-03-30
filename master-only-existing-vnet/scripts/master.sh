@@ -124,7 +124,7 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 networking:
   podSubnet: "${POD_SUBNET}"
-kubernetesVersion: "stable"
+kubernetesVersion: "v1.15.4"
 controlPlaneEndpoint: "${API_LB_ENDPOINT}"
 EOF
 
