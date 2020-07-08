@@ -41,11 +41,11 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "[uri(parameters('config').artifactsLocation,'scripts/master.sh')]"
+                        "[uri(parameters('config').artifactsLocation,'scripts/empty.sh')]"
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute": "[concat('/bin/bash master.sh ', copyIndex(1), ' ', parameters('credentials').guid, ' ',reference(concat('Microsoft.Network/publicIPAddresses/', parameters('names').lbPubIp), '2016-03-30').dnsSettings.fqdn, ' ', parameters('credentials').adminUsername, ' ', parameters('config').kubernetesVersion)]"
+                    "commandToExecute": "[concat('/bin/bash empty.sh ', copyIndex(1), ' ', parameters('credentials').guid, ' ',reference(concat('Microsoft.Network/publicIPAddresses/', parameters('names').lbPubIp), '2016-03-30').dnsSettings.fqdn, ' ', parameters('credentials').adminUsername, ' ', parameters('config').kubernetesVersion)]"
                 }
             }
         }        
