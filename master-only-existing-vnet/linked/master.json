@@ -101,7 +101,8 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('names').vmMaster, copyIndex(1), '-vnic', copyIndex(1)))]",
-                "[concat('Microsoft.Compute/availabilitySets/', parameters('names').avSet)]"
+                "[concat('Microsoft.Compute/availabilitySets/', parameters('names').avSet)]",
+                "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]"
             ],
             "properties": {
                 "availabilitySet": {
@@ -136,7 +137,17 @@
                         "name": "[concat(parameters('names').vmMaster, copyIndex(1),'-osdisk')]",
                         "createOption": "FromImage",
                         "caching": "ReadWrite"
-                    }
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1))]",
+                            "createOption": "attach",
+                            "managedDisk": {
+                                "id": "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]"
+                            }
+                        }
+                    ]
                 },
                 "networkProfile": {
                     "networkInterfaces": [
