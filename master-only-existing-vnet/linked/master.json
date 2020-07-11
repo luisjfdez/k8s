@@ -73,6 +73,25 @@
             }
         },
         {
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2018-06-01",
+            "name": "[concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1))]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "datadiskMasterLoop",
+                "count": "[parameters('config').master.count]"
+            },
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "properties": {
+                "creationData": {
+                    "createOption": "Empty"
+                },
+                "diskSizeGB": "parameters('config').master.dataDiskSizeInGB"
+            }
+        },
+        {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[concat(parameters('names').vmMaster, copyIndex(1))]",
             "location": "[resourceGroup().location]",

@@ -22,6 +22,13 @@
             },
             "defaultValue": "Standard_F2s_v2"
         },
+        "dataDiskSizeInGB": {
+            "defaultValue": 128,
+            "type": "int",
+            "metadata": {
+              "description": "Data disk size in GiB."
+            }
+        },
         "kubernetesVersion": {
             "type": "string",
             "metadata": {
@@ -95,7 +102,8 @@
             "master": {
                 "count": 3,
                 "fixedIpAddresses": "[parameters('mastersFixedIpAddresses')]",
-                "size": "[parameters('vmSize')]"
+                "size": "[parameters('vmSize')]",
+                "dataDiskSizeInGB": "[parameters('dataDiskSizeInGB')]"
             },
             "kubernetesVersion":"[parameters('kubernetesVersion')]",
             "existingVnet": {
