@@ -22,8 +22,33 @@
             }
         }
     },
-    "variables": {},
+    "variables": {
+        "Owner": "[concat('/subscriptions/',subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
+        "Contributor": "[concat('/subscriptions/',subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "Reader": "[concat('/subscriptions/',subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
+        "bootstrapRoleAssignmentId": "[guid(concat(resourceGroup().id, 'contributor'))]"
+    },
     "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "name": "[parameters('names').userManagedId]",
+            "apiVersion": "2018-11-30",
+            "location": "[resourceGroup().location]"
+        },        
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2018-09-01-preview",
+            "name": "[variables('bootstrapRoleAssignmentId')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', [parameters('names').userManagedId])]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('Contributor')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', [parameters('names').userManagedId]), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },        
         {
             "name": "[parameters('names').avSet]",
             "type": "Microsoft.Compute/availabilitySets",
@@ -95,6 +120,12 @@
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[concat(parameters('names').vmMaster, copyIndex(1))]",
             "location": "[resourceGroup().location]",
+            "identity": {
+                "type": "userAssigned",
+                "userAssignedIdentities": {
+                   "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/',concat(parameters('names').userManagedId)]": {}
+                }
+            },
             "copy": {
                 "name": "vmMasterLoop",
                 "count": "[parameters('config').master.count]"
@@ -102,7 +133,8 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('names').vmMaster, copyIndex(1), '-vnic', copyIndex(1)))]",
                 "[concat('Microsoft.Compute/availabilitySets/', parameters('names').avSet)]",
-                "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]"
+                "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', [parameters('names').userManagedId])]"
             ],
             "properties": {
                 "availabilitySet": {

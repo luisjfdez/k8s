@@ -90,7 +90,8 @@
             "lb": "[toLower(concat(parameters('prefix'), '-lb'))]",
             "lbFe": "[toLower(concat(parameters('prefix'), '-lb-fe'))]",
             "lbPubIp": "[toLower(concat(parameters('prefix'), '-lb-pubip'))]",
-            "vmMaster": "[toLower(concat(parameters('prefix'), '-master'))]"
+            "vmMaster": "[toLower(concat(parameters('prefix'), '-master'))]",
+            "userManagedId": "[toLower(concat(parameters('prefix'), '-uai'))]"
         },
         "credentials": {
             "adminUsername": "[parameters('adminUsername')]",
