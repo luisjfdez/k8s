@@ -40,11 +40,11 @@
             "apiVersion": "2018-09-01-preview",
             "name": "[variables('bootstrapRoleAssignmentId')]",
             "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', [parameters('names').userManagedId])]"
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('names').userManagedId)]"
             ],
             "properties": {
                 "roleDefinitionId": "[variables('Contributor')]",
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', [parameters('names').userManagedId]), '2018-11-30').principalId]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('names').userManagedId), '2018-11-30').principalId]",
                 "scope": "[resourceGroup().id]",
                 "principalType": "ServicePrincipal"
             }
@@ -134,7 +134,7 @@
                 "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('names').vmMaster, copyIndex(1), '-vnic', copyIndex(1)))]",
                 "[concat('Microsoft.Compute/availabilitySets/', parameters('names').avSet)]",
                 "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]",
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', [parameters('names').userManagedId])]"
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('names').userManagedId)]"
             ],
             "properties": {
                 "availabilitySet": {
