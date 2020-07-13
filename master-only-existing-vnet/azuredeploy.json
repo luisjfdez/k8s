@@ -32,10 +32,17 @@
         "kubernetesVersion": {
             "type": "string",
             "metadata": {
-                "description": "The size of the VMs"
+                "description": "Kubernetes version"
             },
             "defaultValue": "latest",
             "allowedValues": ["latest","1.15.4-00"]
+        },
+        "kubernetesVersionConfig": {
+            "type": "string",
+            "metadata": {
+                "description": "Kubernetes version in ClusterConfiguration"
+            },
+            "defaultValue": "stable"
         },
         "prefix": {
             "type": "string",
@@ -107,6 +114,7 @@
                 "dataDiskSizeInGB": "[parameters('dataDiskSizeInGB')]"
             },
             "kubernetesVersion":"[parameters('kubernetesVersion')]",
+            "kubernetesVersionConfig":"[parameters('kubernetesVersionConfig')]",
             "existingVnet": {
                 "ResourceGroup": "[parameters('existingVnetResourceGroupName')]",
                 "VnetName": "[parameters('existingVnetName')]",
