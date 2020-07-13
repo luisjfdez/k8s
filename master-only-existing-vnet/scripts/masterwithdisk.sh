@@ -6,7 +6,7 @@ UNIQUE_STRING=$2
 API_LB_ENDPOINT="$3:6443"
 ADMIN_USERNAME=$4
 KUBERNETES_VERSION=$5
-KUBERNETES_VERSION_CONFIG=${6:-stable}
+KUBERNETES_VERSION_CONFIG="${6:-stable}"
 
 POD_SUBNET="10.244.0.0/16"
 OVERLAY_CONF="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
