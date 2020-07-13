@@ -73,7 +73,7 @@ if [ "$KUBERNETES_VERSION" = "latest" ]; then
 else
   sudo apt-get install -y kubelet=${KUBERNETES_VERSION} kubeadm=${KUBERNETES_VERSION} kubectl=${KUBERNETES_VERSION} \
     && echo "## Pass: Install latest version of Kubernetes components" \
-    || { echo "## Fail: failed to install latest version of Kubernetes components" ; exit 1 ; }
+    || { echo "## Fail: failed to install ${KUBERNETES_VERSION} version of Kubernetes components" ; exit 1 ; }
 fi
 
 # Fix warning 1
