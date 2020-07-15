@@ -120,7 +120,7 @@
                         }
                     },
                     {
-                        "name": "https",
+                        "name": "http",
                         "properties": {
                             "provisioningState": "Succeeded",
                             "frontendIPConfiguration": {
