@@ -1,0 +1,197 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "apiProfile": "2018-03-01-hybrid",
+    "parameters": {
+        "names": {
+            "type": "object",
+            "metadata": {
+                "description": "Names object from master template"
+            }
+        },
+        "credentials": {
+            "type": "secureObject",
+            "metadata": {
+                "description": "Secure credential object from master template"
+            }
+        },
+        "config": {
+            "type": "object",
+            "metadata": {
+                "description": "Config object from master template"
+            }
+        }
+    },
+    "variables": {
+        "Owner": "[concat('/subscriptions/',subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
+        "Contributor": "[concat('/subscriptions/',subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "Reader": "[concat('/subscriptions/',subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
+        "bootstrapRoleAssignmentId": "[guid(concat(resourceGroup().id, 'contributor'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "name": "[parameters('names').userManagedId]",
+            "apiVersion": "2018-11-30",
+            "location": "[resourceGroup().location]"
+        },        
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2018-09-01-preview",
+            "name": "[variables('bootstrapRoleAssignmentId')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('names').userManagedId)]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('Contributor')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('names').userManagedId), '2018-11-30').principalId]",
+                "scope": "[resourceGroup().id]",
+                "principalType": "ServicePrincipal"
+            }
+        },        
+        {
+            "name": "[parameters('names').avSet]",
+            "type": "Microsoft.Compute/availabilitySets",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 2
+            },
+            "sku": {
+                "name": "Aligned"
+            }
+        },
+        {
+            "name": "[concat(parameters('names').vmMaster, copyIndex(1), '-vnic', copyIndex(1))]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "nicMasterLoop",
+                "count": "[parameters('config').master.count]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('config').master.fixedIpAddresses[copyIndex()]]",
+                            "subnet": {
+                                "id": "[resourceId(parameters('config').existingVnet.ResourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('config').existingVnet.VnetName, parameters('config').existingVnet.SubnetName)]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers',parameters('names').lb),'/backendAddressPools/',parameters('names').lb,'-be')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('names').lb), '/inboundNatRules/','sshMaster',copyIndex(1))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "networkSecurityGroup":{
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('names').nsg)]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2018-06-01",
+            "name": "[concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1))]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "datadiskMasterLoop",
+                "count": "[parameters('config').master.count]"
+            },
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "properties": {
+                "creationData": {
+                    "createOption": "Empty"
+                },
+                "diskSizeGB": "[parameters('config').master.dataDiskSizeInGB]"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2018-06-01",
+            "name": "[concat(parameters('names').vmMaster, copyIndex(1))]",
+            "location": "[resourceGroup().location]",
+            "identity": {
+                "type": "userAssigned",
+                "userAssignedIdentities": {
+                   "[resourceID('Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('names').userManagedId)]": {}
+                }
+            },
+            "copy": {
+                "name": "vmMasterLoop",
+                "count": "[parameters('config').master.count]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('names').vmMaster, copyIndex(1), '-vnic', copyIndex(1)))]",
+                "[concat('Microsoft.Compute/availabilitySets/', parameters('names').avSet)]",
+                "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('names').userManagedId)]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('names').avSet)]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('config').master.size]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(parameters('names').vmMaster, copyIndex(1))]",
+                    "adminUsername": "[parameters('credentials').adminUsername]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "[concat('/home/', parameters('credentials').adminUsername, '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('credentials').sshPublicKey]"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(parameters('names').vmMaster, copyIndex(1),'-osdisk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1))]",
+                            "createOption": "attach",
+                            "managedDisk": {
+                                "id": "[resourceId('Microsoft.Compute/disks/', concat(parameters('names').vmMaster, copyIndex(1), '-datadisk', copyIndex(1)))]"
+                            }
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('names').vmMaster, copyIndex(1), '-vnic', copyIndex(1)))]"
+                        }
+                    ]
+                }
+            }
+        }        
+    ],
+    "outputs": {
+    }
+}

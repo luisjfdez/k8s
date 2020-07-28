@@ -6,8 +6,6 @@ UNIQUE_STRING=$2
 API_LB_ENDPOINT="$3:6443"
 ADMIN_USERNAME=$4
 KUBERNETES_VERSION=$5
-KUBERNETES_VERSION_CONFIG="${6:-stable}"
-
 POD_SUBNET="10.244.0.0/16"
 OVERLAY_CONF="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 KUBEADM_CONF="kubeadm_config.yaml"
@@ -22,7 +20,6 @@ echo ${NODE_INDEX}
 echo ${UNIQUE_STRING}
 echo ${API_LB_ENDPOINT}
 echo ${KUBERNETES_VERSION}
-echo ${KUBERNETES_VERSION_CONFIG}
 echo ${POD_SUBNET}
 echo ${OVERLAY_CONF}
 echo ${KUBEADM_CONF}
@@ -34,6 +31,11 @@ echo "===== update package database ====="
 sudo apt-get update \
   && echo "## Pass: updated package database" \
   || { echo "## Fail: failed to update package database" ; exit 1 ; }
+
+## Needed for flannel
+echo "net.bridge.bridge-nf-call-iptables = 1" >> /etc/sysctl.conf
+echo "net.bridge.bridge-nf-call-ip6tables = 1" >> /etc/sysctl.conf
+/sbin/sysctl -p /etc/sysctl.conf
 
 echo "===== install prereq packages ====="
 sudo apt-get install -y apt-transport-https curl \
@@ -60,12 +62,6 @@ sudo apt-get update \
   && echo "## Pass: updated package database" \
   || { echo "## Fail: failed to update package database" ; exit 1 ; }
 
-## Needed for flannel
-sudo modprobe br_netfilter
-sudo su -c 'echo "net.bridge.bridge-nf-call-iptables = 1" >> /etc/sysctl.conf'
-sudo su -c 'echo "net.bridge.bridge-nf-call-ip6tables = 1" >> /etc/sysctl.conf'
-sudo /sbin/sysctl -p /etc/sysctl.conf
-
 echo "===== install Kubernetes components using specified version ====="
 if [ "$KUBERNETES_VERSION" = "latest" ]; then
   sudo apt-get install -y kubelet kubeadm kubectl \
@@ -73,8 +69,8 @@ if [ "$KUBERNETES_VERSION" = "latest" ]; then
     || { echo "## Fail: failed to install latest version of Kubernetes components" ; exit 1 ; }
 else
   sudo apt-get install -y kubelet=${KUBERNETES_VERSION} kubeadm=${KUBERNETES_VERSION} kubectl=${KUBERNETES_VERSION} \
-    && echo "## Pass: Install ${KUBERNETES_VERSION} version of Kubernetes components" \
-    || { echo "## Fail: failed to install ${KUBERNETES_VERSION} version of Kubernetes components" ; exit 1 ; }
+    && echo "## Pass: Install latest version of Kubernetes components" \
+    || { echo "## Fail: failed to install latest version of Kubernetes components" ; exit 1 ; }
 fi
 
 # Fix warning 1
@@ -82,33 +78,9 @@ sudo systemctl enable docker.service \
   && echo "## Pass: Apply fix for kubeadm init warning" \
   || { echo "## Fail: failed to apply fix for kubeadm init warning" ; exit 1 ; }
 
-# Add docker data disk as external
-disk_symlink=$(sudo ls -l /dev/disk/azure --recursive | grep "lun0")
-disk_symlink_reference=$(echo $disk_symlink | awk '{match($0,"lun0 -> ([^ ]+)",a)}END{print a[1]}')
-disk_symname=$(echo $disk_symlink_reference | awk '{match($0,"(../)+([^ ]+)",a)}END{print a[2]}')
-arch_fdisk_name="/dev/${disk_symname}"
-# Format disk
-(echo n; echo p; echo 1; echo ; echo ; echo w) | sudo fdisk ${arch_fdisk_name}
-arch_fdisk_partition=${arch_fdisk_name}1
-# Mount disk
-sudo mkfs -t ext4 ${arch_fdisk_partition}
-# Get disk UUID
-disk_uuid=$(sudo blkid -s UUID -o value ${arch_fdisk_partition})
-
-
-# mount disk
-sudo mkdir /data
-sudo mount ${arch_fdisk_partition} /data
-sudo mkdir /data/docker
-
-# ensure mount stays after restart adding to fstab
-disk_uuid_to_fstab="UUID=${disk_uuid}   /data  ext4    defaults,nofail   1  2)"
-echo $disk_uuid_to_fstab | sudo tee -a /etc/fstab
-
 # Fix warning 2
 cat << EOF | sudo tee -a /etc/docker/daemon.json
 {
-  "data-root": "/data/docker",
   "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "json-file",
   "log-opts": {
@@ -152,7 +124,7 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 networking:
   podSubnet: "${POD_SUBNET}"
-kubernetesVersion: "${KUBERNETES_VERSION_CONFIG}"
+kubernetesVersion: "v1.15.4"
 controlPlaneEndpoint: "${API_LB_ENDPOINT}"
 EOF
 
@@ -196,12 +168,9 @@ fi
 
 echo "===== Copy conf files to user context ====="
 
-
 mkdir -p /home/$ADMIN_USERNAME/.kube \
   && echo "## Pass: Create .kube folder in home dir" \
   || { echo "## Fail: failed to create .kube folder in home dir" ; exit 1 ; }
-
-sudo chown $(id -u $ADMIN_USERNAME):$(id -g $ADMIN_USERNAME) /home/$ADMIN_USERNAME/.kube
 
 sudo cp -T -v /etc/kubernetes/admin.conf /home/$ADMIN_USERNAME/.kube/config \
   && echo "## Pass: Copy admin.conf to .kube" \
