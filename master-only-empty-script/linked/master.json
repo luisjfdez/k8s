@@ -75,9 +75,9 @@
                         "name": "ipconfig1",
                         "properties": {
                             "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[parameters('config').master.fixedIpAddresses[copyIndex()]]",
+                            "privateIPAddress": "[parameters('config').master.ip[copyIndex()]]",
                             "subnet": {
-                                "id": "[resourceId(parameters('config').existingVnet.ResourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('config').existingVnet.VnetName, parameters('config').existingVnet.SubnetName)]"
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks',parameters('names').vNet),'/subnets/',parameters('names').subnetMaster)]"
                             },
                             "loadBalancerBackendAddressPools": [
                                 {

@@ -52,10 +52,37 @@
             }
         },
         {
+            "name": "[parameters('names').vNet]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[parameters('names').nsg]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('config').addressPrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('names').subnetMaster]",
+                        "properties": {
+                            "addressPrefix": "[parameters('config').master.subnetPrefix]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',parameters('names').nsg)]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
             "name": "[parameters('names').lb]",
             "type": "Microsoft.Network/loadBalancers",
             "location": "[resourceGroup().location]",
             "dependsOn": [
+                "[parameters('names').vNet]",
                 "[parameters('names').lbPubIp]"
             ],
             "properties": {
