@@ -93,6 +93,8 @@
     "variables": {
         "names": {
             "avSet": "[toLower(concat(parameters('prefix'), '-avset'))]",
+            "vNet": "[toLower(concat(parameters('prefix'), '-vnet'))]",
+            "subnetMaster": "[toLower(concat(parameters('prefix'), '-subnetMaster'))]",
             "nsg": "[toLower(concat(parameters('prefix'), '-nsg'))]",
             "lb": "[toLower(concat(parameters('prefix'), '-lb'))]",
             "lbFe": "[toLower(concat(parameters('prefix'), '-lb-fe'))]",
@@ -107,10 +109,19 @@
         },
         "config": {
             "artifactsLocation": "[parameters('artifactsLocation')]",
+            "addressPrefix": "10.0.0.0/16",
             "master": {
                 "count": 3,
                 "fixedIpAddresses": "[parameters('mastersFixedIpAddresses')]",
                 "size": "[parameters('vmSize')]",
+                "subnetPrefix": "10.0.1.0/24",
+                "ip": [
+                    "10.0.1.11",
+                    "10.0.1.12",
+                    "10.0.1.13",
+                    "10.0.1.14",
+                    "10.0.1.15"
+                ],
                 "dataDiskSizeInGB": "[parameters('dataDiskSizeInGB')]"
             },
             "kubernetesVersion":"[parameters('kubernetesVersion')]",
