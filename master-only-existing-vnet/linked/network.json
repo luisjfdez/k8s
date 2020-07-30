@@ -23,6 +23,21 @@
             "type": "Microsoft.Network/networkSecurityGroups",
             "location": "[resourceGroup().location]",
             "properties": {
+                "securityRules": [
+                    {
+                        "name": "rulekubeadm",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('names').lbPubIp)).IpAddress]",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 101,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
             }
         },
         {
