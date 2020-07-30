@@ -25,12 +25,12 @@
             "properties": {
                 "securityRules": [
                     {
-                        "name": "rulekubeadm",
+                        "name": "rule1",
                         "properties": {
                             "protocol": "*",
                             "sourcePortRange": "*",
                             "destinationPortRange": "*",
-                            "sourceAddressPrefix": "[reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('names').lbPubIp)).IpAddress]",
+                            "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 101,
