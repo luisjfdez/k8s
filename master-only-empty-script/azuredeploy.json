@@ -44,6 +44,14 @@
             },
             "defaultValue": "stable"
         },
+        "installMode": {
+            "type": "string",
+            "metadata": {
+                "description": "Install mode (gpu,cpu)"
+            },
+            "defaultValue": "gpu",
+            "allowedValues": ["gpu","cpu"]
+        },
         "prefix": {
             "type": "string",
             "defaultValue": "kube",
@@ -126,6 +134,7 @@
             },
             "kubernetesVersion":"[parameters('kubernetesVersion')]",
             "kubernetesVersionConfig":"[parameters('kubernetesVersionConfig')]",
+            "installMode":"[parameters('installMode')]",
             "existingVnet": {
                 "ResourceGroup": "[parameters('existingVnetResourceGroupName')]",
                 "VnetName": "[parameters('existingVnetName')]",

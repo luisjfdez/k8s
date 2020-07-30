@@ -7,6 +7,15 @@ API_LB_ENDPOINT="$3:6443"
 ADMIN_USERNAME=$4
 KUBERNETES_VERSION=$5
 KUBERNETES_VERSION_CONFIG="${6:-stable}"
+INSTALL_MODE="${7:-gpu}"
+
+GPU_INSTALL="yes"
+if [ ! -z "$GPU_INSTALL" ]
+then
+  echo "install gpu mode"
+else
+  echo "install cpu mode"
+fi
 
 POD_SUBNET="10.244.0.0/16"
 OVERLAY_CONF="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
@@ -28,6 +37,34 @@ echo ${OVERLAY_CONF}
 echo ${KUBEADM_CONF}
 echo ${CERTIFICATE_KEY}
 echo ${BOOTSTRAP_TOKEN}
+echo ${INSTALL_MODE}
+echo ${GPU_INSTALL}
+
+if [ ! -z "$GPU_INSTALL" ]
+then
+  echo "install gpu mode"
+  # Installation
+  echo "===== update package database ====="
+  sudo apt-get update \
+    && echo "## Pass: updated package database" \
+    || { echo "## Fail: failed to update package database" ; exit 1 ; }
+
+  sudo apt-get purge nvidia* -y
+  sudo apt-get autoremove -y
+  sudo apt-get autoclean -y
+  sudo rm -rf /usr/local/cuda*
+
+  sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+  echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list
+
+  sudo apt-get update -y
+  # This step takes 10+ minutes
+  sudo apt-get -o Dpkg::Options::="--force-overwrite" install -y cuda-10-0 cuda-drivers \
+    && echo "## Pass: cuda packages installed" \
+    || { echo "## Fail: failed to install cuda packages" ; exit 1 ; }
+else
+  echo "install cpu mode"
+fi
 
 # Installation
 echo "===== update package database ====="
@@ -35,10 +72,12 @@ sudo apt-get update \
   && echo "## Pass: updated package database" \
   || { echo "## Fail: failed to update package database" ; exit 1 ; }
 
+
 echo "===== install prereq packages ====="
 sudo apt-get install -y apt-transport-https curl \
   && echo "## Pass: prereq packages installed" \
   || { echo "## Fail: failed to install prereq packages" ; exit 1 ; }
+
 
 echo "===== install Docker ====="
 sudo apt-get install -y docker.io \
@@ -105,8 +144,40 @@ sudo mkdir /data/docker
 disk_uuid_to_fstab="UUID=${disk_uuid}   /data  ext4    defaults,nofail   1  2)"
 echo $disk_uuid_to_fstab | sudo tee -a /etc/fstab
 
-# Fix warning 2
-cat << EOF | sudo tee -a /etc/docker/daemon.json
+
+# Add the package repositories
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update
+
+# Install nvidia-docker2 and reload the Docker daemon configuration
+sudo apt-get install -y nvidia-docker2
+
+if [ ! -z "$GPU_INSTALL" ]
+then
+  echo "install gpu mode"
+cat << EOF | sudo tee /etc/docker/daemon.json
+{
+  "data-root": "/data/docker",
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2",
+  "default-runtime": "nvidia",
+  "runtimes": {
+      "nvidia": {
+            "path": "/usr/bin/nvidia-container-runtime",
+            "runtimeArgs": []
+          }
+    }
+}
+EOF
+else
+  echo "install cpu mode"
+cat << EOF | sudo tee /etc/docker/daemon.json
 {
   "data-root": "/data/docker",
   "exec-opts": ["native.cgroupdriver=systemd"],
@@ -117,6 +188,7 @@ cat << EOF | sudo tee -a /etc/docker/daemon.json
   "storage-driver": "overlay2"
 }
 EOF
+fi
 
 sudo mkdir -p /etc/systemd/system/docker.service.d \
   && echo "## Pass: Apply fix for kubeadm init warning" \
