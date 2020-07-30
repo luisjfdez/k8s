@@ -41,7 +41,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "[uri(parameters('config').artifactsLocation,'scripts/empty.sh')]"
+                        "[uri(parameters('config').artifactsLocation,'scripts/masterwithdisk.sh')]"
                     ]
                 },
                 "protectedSettings": {
