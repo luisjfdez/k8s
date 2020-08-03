@@ -10,6 +10,11 @@ KUBERNETES_VERSION_CONFIG="${6:-stable}"
 INSTALL_MODE="${7:-gpu}"
 
 GPU_INSTALL="yes"
+if [ "${INSTALL_MODE}" != "gpu" ]
+then
+  GPU_INSTALL=""
+fi
+
 if [ ! -z "$GPU_INSTALL" ]
 then
   echo "install gpu mode"
@@ -185,7 +190,7 @@ cat << EOF | sudo tee /etc/docker/daemon.json
   "log-opts": {
     "max-size": "100m"
   },
-  "storage-driver": "overlay2",
+  "storage-driver": "overlay2"
 }
 EOF
 fi
